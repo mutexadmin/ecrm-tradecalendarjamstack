@@ -109,12 +109,12 @@
   },
   "calendarHeader": {
     "title": {
-      "en": "Calendar of International Trade Programs and Events",
-      "fr": "Calendrier des Programmes et Evénements liés au Commerce International"
+      "en": "Calendar of Trade Programs and Events",
+      "fr": "Calendrier des programmes et événements commerciaux"
     },
     "description": {
-      "en": "Information about upcoming trade missions and exhibitions, incoming buyers missions, exporter education seminars and workshops for Ontario businesses looking to export outside Canada.",
-      "fr": "Renseignements au sujet d’événements destinés aux entreprises de l’Ontario désireuses d’exporter à l’extérieur du Canada : missions commerciales, missions d’acheteurs, salons professionnels, séminaires de formation sur les exportations et ateliers divers."
+      "en": "Information on upcoming trade missions and exhibitions, incoming buyer missions, and exporter education seminars and workshops for Ontario businesses looking to expand in interprovincial and international markets.",
+      "fr": "Informations sur les événements destinés aux entreprises ontariennes souhaitant se développer sur les marchés interprovinciaux et internationaux : missions commerciales, missions d’acheteurs, salons professionnels, séminaires de formation à l’exportation et ateliers divers."
     }, 
     "ontariostradeteam": {
       "en": "Looking to connect? Find an <a href=\"/international-trade-events-calendar/ontarios-trade-team/\">international market consultant</a> who can help you target specific regions.",

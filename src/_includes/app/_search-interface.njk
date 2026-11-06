@@ -1,0 +1,19 @@
+<div x-data="tradeCalendarFuseSearch('{{ lang }}')">
+
+    <div class="ontario-column ontario-small-12 ontario-medium-5 ontario-large-4">
+      
+      {% include 'app/_search-interface_search-box.njk' %}
+
+      {% include 'app/_search-interface_filters.njk' %}
+      
+      {% include 'app/_search-interface_facets.njk' %}
+      
+      
+  </div>
+      
+
+    
+      <div class="ontario-column ontario-small-12 ontario-medium-7 ontario-large-8">
+        {% include 'app/_search-interface_results.njk' %}
+    </div>           
+</div>

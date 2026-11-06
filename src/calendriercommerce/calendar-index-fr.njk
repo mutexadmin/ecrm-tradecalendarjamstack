@@ -1,0 +1,49 @@
+---
+permalink: '/calendrier-evenements-commerce-international/calendar-index-fr.json'
+eleventyExcludeFromCollections: true
+---
+{
+    "facets": [
+        {   "label": "Secteur",
+            "name": "sector",
+            "items": [
+            {% for label, items in app.tradeEvents | sort(attribute='sector_fr') | groupby("sector_fr") %}
+            {
+            "label": "{{ label | safe }}",
+            "count": "{{ items | length }}"
+            }
+            {% if not loop.last %},{% endif %}
+            {% endfor %}
+            ]
+      },
+        {   "label": "Région commerciale",
+            "name": "marketRegion",
+            "items": [
+            {% for label, items in app.tradeEvents | sort(attribute='market_fr') | groupby("market_fr") %}
+            {
+            "label": "{{ label | safe }}",
+            "count": "{{ items | length }}"
+            }
+            {% if not loop.last %},{% endif %}
+            {% endfor %}
+            ]
+      }
+    ],
+    "items": [
+                {% for item in app.tradeEvents | sort(attribute='start_date_epoch') %}
+                {
+                    "id": "{{ item.id }}",
+                    "slug": "{{ item.slug_fr }}",
+                    "eventName": "{{ item['Event_Name_French'] | replace('"', '&quot;') | safe }}",
+                    "description": "{{ item.summaryDescription_fr | replace('"', '&quot;') | safe }}",
+                    "sector": "{{ item['sector_fr'] }}",
+                    "marketRegion": "{{ item['market_fr'] }}",
+                    "startDate": "{{ item['start_date'] }}",
+                    "startDateEpoch": "{{ item.start_date_epoch }}",
+                    "endDateEpoch": "{{ item.end_date_epoch }}",
+                    "endDate": "{{ item['end_date'] }}",
+                    "register": "{{ item['Sign_Up_URL_French'] }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+    ]
+}

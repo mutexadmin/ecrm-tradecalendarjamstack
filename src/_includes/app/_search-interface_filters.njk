@@ -1,0 +1,7 @@
+<div class="panel">
+      <h3>{{ "calendarSearch.filterByDate" | localeString }}</h3>
+      <label class="ontario-label" for="tc-start-date">{{ "calendarSearch.searchStartDate" | localeString }}</label> 
+      <input class="ontario-input" id="tc-start-date" type="date" x-model:value="searchStartDate" x-on:change="doSearch()">
+      <label class="ontario-label" for="tc-end-date">{{ "calendarSearch.searchEndDate" | localeString }}</label> 
+      <input class="ontario-input" id="tc-end-date" type="date" x-model:value="searchEndDate" x-on:change="doSearch()">
+</div>

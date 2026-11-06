@@ -1,0 +1,55 @@
+---
+permalink: '/international-trade-events-calendar/calendar-index-en.json'
+eleventyExcludeFromCollections: true
+---
+
+{
+    "facets": [
+        {   "label": "Sector",
+            "name": "sector",
+            "items": [
+            {% for label, items in app.tradeEvents | sort(attribute='sector') | groupby("sector") %}
+            {
+            "label": "{{ label }}",
+            "count": "{{ items | length }}"
+            }
+            {% if not loop.last %},{% endif %}
+            {% endfor %}
+            ]
+      },
+        {   "label": "Market Region",
+            "name": "marketRegion",
+            "items": [
+            {% for label, items in app.tradeEvents | sort(attribute='Market_for_Public_Events') | groupby("Market_for_Public_Events") %}
+            {
+            "label": "{{ label }}",
+            "count": "{{ items | length }}"
+            }
+            {% if not loop.last %},{% endif %}
+            {% endfor %}
+            ]
+      }
+    ],
+    "items": [
+                {% for item in app.tradeEvents | sort(attribute='start_date_epoch') %}
+
+
+                {
+                    "id": "{{ item.id }}",
+                    "slug": "{{ item.slug }}",
+                    "eventName": "{{ item['Event_Name'] | replace('"', '&quot;') | safe }}",
+                    "description": "{{ item.summaryDescription | replace('"', '&quot;') | safe }}",
+                    "sector": "{{ item['sector'] }}",
+                    "marketRegion": "{{ item['market'] }}",
+                    "startDate": "{{ item.start_date }}",
+                    "endDate": "{{ item.end_date }}",
+                    "startDateEpoch": "{{ item.start_date_epoch }}",
+                    "endDateEpoch": "{{ item.end_date_epoch }}",
+                    "register": "{{ item['Sign_Up_URL'] }}"
+                }{% if not loop.last %},{% endif %}
+                {% endfor %}
+    ]
+
+}
+
+

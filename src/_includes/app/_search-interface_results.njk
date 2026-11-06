@@ -1,0 +1,33 @@
+<h2><strong><span x-text="searchResults.length"></span> {{ 'calendarSearch.eventsFound' | localeString }}</strong></h2>
+    <div ng-show="tradeCalendarFuseSearch.total > 0" class="row" style="">
+  
+    <label for="sort-order">{{ 'calendarSearch.sortBy' | localeString }} </label>
+    <select class="ontario-input ontario-dropdown ontario-margin-bottom-16-!" x-model="sortType" x-on:change="sortSearchItems()">
+
+    
+  <option value="dateOldest">{{ 'calendarSearch.oldestToNewest' | localeString }}</option>
+  <option value="dateNewest">{{ 'calendarSearch.newestToOldest' | localeString }}</option>
+</select>
+</div>
+    <!-- Trade Events -->
+    
+          
+    <template x-for="result, idx in searchResults.slice(0,numResultsDisplayed)" :key="result.item.id">
+      <div class="event-card">
+      <h3><strong><a :href="result.item.slug" class=" " x-html="result.item.eventName" aria-label="event-name"></a></strong></h3>
+      <p x-html="result.item.description"></p>
+
+      <p><strong>{{ 'calendarSearch.sector' | localeString }}:</strong> <span x-html="result.item.sector"></span></p>
+      <p><strong>{{ 'calendarSearch.region' | localeString }}:</strong> <span x-html="result.item.marketRegion"></span></p>
+      <p><strong>{{ 'calendarSearch.date' | localeString }}: </strong> <span x-text="dateFormats.{{lang}}Display(result.item.startDate)"></span><template x-if="result.item.startDate !== result.item.endDate"><span x-text="' {{ 'calendarSearch.dateRangeSeparator' | localeString }} ' + dateFormats.{{lang}}Display(result.item.endDate)"></span></template></p>      
+    
+          <template x-if="((idx+1) % 20) == 0">
+          <div class="next-events">
+            <p><span x-text="idx-(numResultsIncrement-2)"></span> {{ 'calendarSearch.numResults.to' | localeString }} <span x-text="idx+1"></span> {{ 'calendarSearch.numResults.of' | localeString }} <span x-text="searchResults.length"></span> {{ 'calendarSearch.numResults.results' | localeString }}</p>
+            <button @click="showMoreResults">{{ 'calendarSearch.numResults.next20' | localeString }}</button>
+        </div>                       
+        </template>
+        </div>
+    </template>
+
+    <!-- Trade Events End -->

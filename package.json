@@ -1,0 +1,44 @@
+{
+  "name": "ontarioca-trade-calendar",
+  "version": "1.0.0",
+  "description": "Ontario.ca - Calendar of International Trade Events",
+  "main": "index.js",
+  "scripts": {
+    "lint": "rm -rf dist && eleventy && npm run htmlValidateDist",
+    "build": "rm -rf dist && eleventy",
+    "serve": "eleventy --serve",
+    "htmlValidateSrc": "html-validate src/**/*.njk",
+    "htmlValidateDist": "html-validate dist/**/*.html",
+    "formatCode": "npx prettier --write .",
+    "installDesignSystem": "export DS_VERSION=0.12.8 && export DS_ZIP_NAME=ontario-design-system.zip && export VEN_DIR=src/assets/vendor && export DS_UNZIP_DIR=$VEN_DIR/ontario-design-system && curl https://designsystem.ontario.ca/dist/ontario-design-system-dist-$DS_VERSION.zip > $VEN_DIR/$DS_ZIP_NAME && unzip -o $VEN_DIR/$DS_ZIP_NAME -d $DS_UNZIP_DIR && rm $VEN_DIR/$DS_ZIP_NAME && rm $DS_UNZIP_DIR/version-release-notes-*.* && rm -rf $DS_UNZIP_DIR/html-samples && rm $DS_UNZIP_DIR/index.html && rm $DS_UNZIP_DIR/package.json && rm -rf $DS_UNZIP_DIR/styles/components && rm -rf $DS_UNZIP_DIR/styles/sass",
+    "clearCache": "rm -rf .cache",
+    "test": "mocha"
+  },
+  "author": "Ontario Digital Service",
+  "license": "Apache 2.0",
+  "devDependencies": {
+    "@11ty/eleventy": "^1.0.1",
+    "@11ty/eleventy-navigation": "^0.3.5",
+    "commander": "^9.3.0",
+    "dotenv": "^16.0.0",
+    "fast-xml-parser": "^4.0.8",
+    "fs-extra": "^10.1.0",
+    "html-validate": "^6.1.0",
+    "inquirer": "^9.0.0",
+    "mocha": "^9.1.3",
+    "prettier": "2.6.2",
+    "simple-git": "^3.10.0",
+    "underscore": "^1.13.4",
+    "uuid": "^8.3.2",
+    "validate-npm-package-name": "^4.0.0",
+    "xml-js": "^1.6.11"
+  },
+  "dependencies": {
+    "@11ty/eleventy-fetch": "^3.0.0",
+    "@databricks/sql": "https://github.com/databricks/databricks-sql-nodejs",
+    "cheerio": "^1.0.0-rc.12",
+    "entity-convert": "1.0.0",
+    "html-to-text": "^9.0.5",
+    "slugify": "^1.6.6"
+  }
+}

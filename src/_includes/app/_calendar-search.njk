@@ -1,0 +1,340 @@
+<script>
+    // Sort functions used by the search component
+  const sorts = {
+    dateNewest: function (a,b) {
+      return b.item.startDateEpoch - a.item.startDateEpoch;
+    },
+    dateOldest: function (a,b) {
+      return a.item.startDateEpoch - b.item.startDateEpoch;
+    }
+  }
+
+  // Date format functions used by the search results display
+  const dateFormats = {
+    frDisplay: function (date) {
+      date = new Date(date);
+      return Intl.DateTimeFormat('fr-CA', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      }).format(date);
+    },
+    enDisplay: function (date) {
+      date = new Date(date);
+      return Intl.DateTimeFormat('en-CA', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        timeZone: 'UTC',
+      }).format(date);
+    }
+  }
+
+  // Search persistence functions used by the search component to encode and
+  // decode searches to/from a page URL
+  const searchPersistence = {
+    encodeToUrl: function (searchTerm, selectedFacets, searchStartDate, searchEndDate) {
+      const searchToUrl = {
+        q: searchTerm,
+        f: selectedFacets,
+        s: searchStartDate || "",
+        e: searchEndDate || ""
+      }
+      const searchParams = new URLSearchParams(searchToUrl);      
+      window.history.replaceState({}, "", "?" + searchParams);      
+    },
+    decodeFromUrl: function () {
+      const searchParams = new URLSearchParams(window.location.search);
+      const searchFromUrl = {
+        searchTerm: searchParams.get("q"),
+        selectedFacets: searchParams.get("f"),
+        searchStartDate: searchParams.get("s"),
+        searchEndDate: searchParams.get("e")
+      }
+      return searchFromUrl;
+    }
+  }
+
+
+  // The search component handling all non-UI search functionality
+  // User interface logic is handled by the various Alpine markup components in the _search-interface* components
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('tradeCalendarFuseSearch', (lang) => ({
+
+      // Initialization function - sets up 
+      // initial search configuration 
+      // based on retrieving the index file
+      // for the specified language
+      init() {
+        // Fetch the index file for the specified language
+        fetch(`calendar-index-${lang}.json`)
+          .then(res => res.json())
+          .then(data => {          
+            
+            // Fuse.js search configuration for text search
+            var textSearchOptions = {
+              minMatchCharLength: 3,
+              keys: [
+                "eventName","description","sector"
+              ],
+              threshold: 0.1,
+              ignoreLocation: true                          
+            };
+
+            // Fuse.js search configuration a blank text 
+            // search that will return all items
+            // (a bit hacky)
+            var searchAllOptions = {
+              minMatchCharLength: 0,
+              keys: [
+                "eventName","description","sector"
+              ],
+              threshold: 1.0
+             };
+
+            // Sets the search set's items and 
+            // facets based on the retrieved index
+            this.searchSet.items = data.items;            
+            this.searchSet.facets = data.facets;                  
+            
+            // Create Fuse.js search objects
+            // based on the previous configs            
+            this.searchAll = new Fuse(data.items, searchAllOptions);            
+            this.textSearch = new Fuse(data.items, textSearchOptions); 
+
+            // Set search terms from URL
+            const searchFromUrl = searchPersistence.decodeFromUrl();       
+            if(searchFromUrl.searchTerm && searchFromUrl.searchTerm.length > 0) {        
+              this.searchTerm = searchFromUrl.searchTerm;
+            }
+
+            if(searchFromUrl.selectedFacets && searchFromUrl.selectedFacets.length > 0) {        
+              this.selectedFacets = searchFromUrl.selectedFacets.split(",");
+            }
+
+            if(searchFromUrl.searchStartDate && searchFromUrl.searchStartDate.length > 0 && searchFromUrl.searchStartDate != 'null') {        
+              this.searchStartDate = searchFromUrl.searchStartDate;
+            }
+
+            if(searchFromUrl.searchEndDate && searchFromUrl.searchEndDate.length > 0 && searchFromUrl.searchEndDate != 'null') {        
+              this.searchEndDate = searchFromUrl.searchEndDate;
+            }
+ 
+
+            // Runs an initial search to display the 
+            // results
+            this.doSearch();      
+
+            // Adds listeners to the dynamically created
+            // accordions for the filters
+            this.$nextTick(()=> {
+              this.addAccordionListeners();
+            })           
+          })      
+      },
+
+      // The basic search starting config, consisting of
+      // - defined facets available for the search
+      // - items to be searched
+      // these are loaded from the calendar-index*.json files by the init() function
+      searchSet: {        
+        facets: [],
+        items: []        
+      },
+
+      // How many results are currently displayed
+      numResultsDisplayed: 20,
+      // How many results to add to those displayed 
+      // each time showMoreResults() is called
+      numResultsIncrement: 20,      
+      showMoreResults () {
+        this.numResultsDisplayed = this.numResultsDisplayed+this.numResultsIncrement
+      },
+
+      // Holds currently selected facets
+      selectedFacets: [],
+
+      // holds current search results
+      searchResults: [],      
+
+      // current day in YYYY-MM-DD format
+      defaultSearchStartDate: new Date().toISOString().slice(0,10),
+
+      // Defaults the start date of the search to today's date
+      searchStartDate: new Date().toISOString().slice(0,10),
+      
+      // Defaults the end date of the search to any distance in the future
+      searchEndDate: null,
+
+      // Holds current search term
+      searchTerm: "", 
+
+      // Fuse.js search objects, initialized
+      // by the init() function
+      // searchAll: null,
+      // textSearch: null,
+      
+      // Default sort type 
+      sortType: "dateOldest",
+
+      textSearch: null, 
+
+      // placeholder text for text search box
+      placeholder: '{{ "calendarSearch.searchTermPlaceHolder" | localeString }}',
+
+      // Adds listeners for the Ontario.ca Design System accordions open/close
+      addAccordionListeners() {        
+        var expandableItems = Array.prototype.slice.call(
+            document.querySelectorAll("[data-toggle='ontario-collapse']")
+        );        
+        toggleExpander(expandableItems);
+      },
+
+      // Sorts using the currently selected sort type
+      doSort(results) {
+        let sortType = this.sortType;
+        return results.sort(function (a,b) {          
+          return sorts[sortType](a,b);
+        });
+      },
+
+       // Sort and update the search results
+      sortSearchItems() {
+        this.searchResults = this.doSort(this.searchResults);
+      },
+
+      // performs the base text search
+      doBaseSearch() {        
+        // Return all results if the search term is blank
+        if(this.searchTerm === "") {          
+          // Matches everything, in combination with the search configuration
+          var results = this.searchAll.search("abcdefghijklmnopqrstuvwxyz");          
+        // Otherwise, execute a text search using the 
+        // search term
+        } else {
+          var results = this.textSearch.search(this.searchTerm);      
+        }        
+
+        // sort the results at the end
+        this.searchResults = this.doSort(results);
+      },
+      doSearch() {
+        // Call the base search function
+        this.doBaseSearch();
+
+        // Filter by start date
+        if(this.searchStartDate) {
+          const start = Date.parse(this.searchStartDate);
+          this.searchResults = this.searchResults.filter(searchHit => {          
+            return searchHit.item.startDateEpoch >= start;
+          });
+        }
+        // Filter by end date
+        if(this.searchEndDate) {
+          const end = Date.parse(this.searchEndDate);
+          this.searchResults = this.searchResults.filter(searchHit => {          
+            return searchHit.item.startDateEpoch <= end;
+          });
+        }
+
+        
+        // If any facets are selected, execute the facet search
+        if(this.selectedFacets.length > 0) {
+          var searchResults = this.searchResults;             
+
+          // Generates an appropriate key to access a 
+          // facet when searching an existing Fuse.js
+          // result set
+          var getFacetKeyForItem = function (facetDef) {
+            return "item." + facetDef.split(":")[0]
+          }
+
+          // Generates an array of unique facet keys
+          // for the search configuration below
+          var facetSearchKeys = [...new Set(this.selectedFacets.map(function (facetDef) {
+            return getFacetKeyForItem(facetDef);
+          })
+          )];
+
+          // Generates an appropriate key to access a 
+          // facet when searching an existing Fuse.js
+          // result set
+          var getFacetKeyForItem = function (facetDef) {
+            return "item." + facetDef.split(":")[0]
+          }
+
+          // Generates an array of unique facet keys
+          // for the search configuration below
+          var facetSearchKeys = [...new Set(this.selectedFacets.map(function (facetDef) {
+            return getFacetKeyForItem(facetDef);
+          })
+          )];
+
+
+          // Fuse.js facet search configuration
+          var facetSearchOptions = {
+            minMatchCharLength: 1,
+            keys: facetSearchKeys,
+            threshold: 0          
+          };              
+          
+          // Generates an array of search paths and values
+          // for the facet search          
+          var facetOrSearch = this.selectedFacets.map(function (facetDef) {
+            var searchElem = {
+              $path: getFacetKeyForItem(facetDef),
+              $val: facetDef.split(":")[1]
+            };          
+            return searchElem;
+          });        
+
+          // Run an or-based search using the selected
+          // facets, using Fuse.js logical query operators
+          // (https://fusejs.io/api/query.html)
+          try {
+          var facetFilteredResults = new Fuse(searchResults, facetSearchOptions).search(
+              {$or: facetOrSearch}
+            );          
+          } catch (e) {
+            console.log(e)
+          }        
+          
+          // Array for holding our the facet-filtered results
+          var results = [];        
+
+          // Extract nested item, since we've had Fuse search its own set of search results
+          facetFilteredResults.forEach(function (nestedItem) {          
+            results.push(nestedItem.item)
+          });          
+        }
+
+        // Update the search results to be the facet-filtered results
+        // (we need to guard here against zero-length results due to the date filter)
+        if(results && results.length >0 ) {
+          this.searchResults = this.doSort(results);     
+        }
+
+        // Encode the search to the URL
+        searchPersistence.encodeToUrl(this.searchTerm, this.selectedFacets, this.searchStartDate, this.searchEndDate);
+      },
+
+
+      clearTradeCalendarFilters() {
+        
+        // Reset the selected filters
+        this.selectedFacets = [];
+
+        // Clear the search
+        this.searchTerm = "";
+
+        // Reset / clear the dates
+        this.searchStartDate = this.defaultSearchStartDate;
+        this.searchEndDate = null;
+
+        // Re-run the search
+        this.doSearch();
+}  
+    }))
+  })
+  </script>

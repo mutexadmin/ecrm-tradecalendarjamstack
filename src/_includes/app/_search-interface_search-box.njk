@@ -1,0 +1,15 @@
+<div class="panel">
+      <h2 id="trade-calendar-keyword-filter-header" class="medium">
+            <label for="tc-search-text">
+                  <strong>{{ "calendarSearch.title" | localeString }}</strong>
+            </label>
+      </h2>
+      <input class="ontario-input" id="tc-search-text" type="text" x-model:value="searchTerm" x-bind:placeholder="placeholder">
+
+      <button class="ontario-button ontario-button--primary" onclick="pushSearchToDataLayer()" x-on:click="doSearch()">{{ "calendarSearch.search" | localeString }}</button>
+
+      <!-- Clear all button -->
+
+      <button class="ontario-button ontario-button--secondary"  x-on:click="clearTradeCalendarFilters()">{{ "calendarSearch.clearAll" | localeString }}</button>
+
+</div>

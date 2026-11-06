@@ -1,0 +1,242 @@
+﻿@charset "UTF-8";
+
+.event-card {
+  border-bottom: 1px solid #ccc;
+  padding: 1em;
+}
+
+.right {
+  text-align: right;
+}
+
+.small {
+  font-size: small;
+}
+
+/* accordion */
+.accordion {
+  width: 100%;
+  max-width: 800px;
+  margin: 0 auto;
+  border-top: 1px solid #ddd;
+}
+
+.accordion-trigger {
+  display: block;
+  padding: 1rem;
+  background-color: #fff;
+  color: #333;
+  cursor: pointer;
+  border: 1px solid #ddd;
+  border-top: none;
+  text-align: left;
+}
+
+.accordion-title {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.accordion-icon {
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 0.5rem;
+  width: 0.75rem;
+  height: 0.75rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 10 10'%3E%3Cpath fill='%23333' d='M5 6.5L0 1 0 9 5 13.5 10 9 10 1z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-size: 100%;
+  transform: rotate(-90deg);
+  transition: transform 0.3s;
+}
+
+.accordion-trigger[aria-expanded='true'] .accordion-icon {
+  transform: rotate(0deg);
+}
+
+.accordion-panel {
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.3s;
+}
+
+.accordion-trigger[aria-expanded='true'] + .accordion-panel {
+  max-height: 1000px;
+}
+/* accordion */
+
+fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+
+input {
+  border: 1px solid hsl(0deg 0% 42%);
+  border-radius: 0.3em;
+  display: block;
+  font-size: inherit;
+  padding: 0.3em 0.5em;
+}
+
+/*trade calendar button*/
+
+/*trade calendar button end*/
+
+.sort-by {
+  -webkit-text-size-adjust: 100%;
+  font-size: 100%;
+  cursor: auto;
+  font-family: Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  color: #1a1a1a;
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  position: relative;
+  padding-left: 0.9375rem;
+  padding-right: 0.9375rem;
+  width: 75%;
+  float: right;
+}
+
+.inline {
+  display: inline-block;
+}
+
+/*accordion*/
+.accordion {
+  width: 100%;
+  overflow: hidden;
+}
+
+.accordion-trigger {
+  background-color: #eee;
+  color: #444;
+  cursor: pointer;
+  padding: 18px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+  font-size: 15px;
+  transition: 0.4s;
+}
+
+.accordion-panel {
+  padding: 0 18px;
+  background-color: white;
+  max-height: 0;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+}
+
+.accordion-title {
+  display: flex;
+  align-items: center;
+}
+
+.accordion-icon {
+  margin-left: auto;
+  height: 0;
+  width: 0;
+  border-left: 10px solid transparent;
+  border-right: 10px solid transparent;
+  border-top: 10px solid #444;
+  transition: 0.4s;
+}
+
+.accordion-trigger.active .accordion-icon {
+  height: 10px;
+  width: 10px;
+  transform: rotate(45deg);
+  border-top: none;
+  border-left: 10px solid #444;
+}
+
+.ontario-container {
+  position: relative;
+  min-height: 100vh;
+}
+
+.ontario-content-wrapper {
+  padding-bottom: 2.5rem;
+  /* Footer height */
+}
+
+footer {
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  height: 2.5rem;
+  /* Footer height */
+}
+
+.panel {
+  -webkit-text-size-adjust: 100%;
+  font-size: 100%;
+  cursor: auto;
+  font-family: Open Sans, Helvetica Neue, Helvetica, Arial, sans-serif;
+  font-style: normal;
+  font-weight: 400;
+  line-height: 1.5;
+  box-sizing: border-box;
+  margin: 0;
+  border: 1px none #d3d3d3;
+  background: #F2F2F2;
+  border-color: rgba(0, 0, 0, 0.1);
+  border-width: 0 0 0 0.9375rem;
+  border-style: solid;
+  padding: 0.9375rem 2rem 0.9375rem 0.9375rem;
+  color: #333;
+  margin-bottom: 1.25rem;
+}
+
+.calendar-header {
+  /* Method to extend background colour outside bounding box from https://stackoverflow.com/a/73301135 */
+  box-shadow: 0 0 0 100vmax #F2F2F2;
+  clip-path: inset(0 -100vmax); 
+  
+  background-color: #F2F2F2; 
+  margin-bottom: 2em;
+  padding-top: 2em;
+}
+
+.team-contact-list {
+  list-style: none;
+  padding: 0px;
+  margin: 1rem 0 3rem 0rem;
+  display: block;
+  gap: 1rem;
+  fill: #0066CC; 
+}
+
+.team-contact-list li {
+  list-style: none;
+  padding: 0px;
+}
+
+.team-contact-list a {
+  text-decoration: none;
+  color: #0066CC; 
+}
+.team-contact-list a:hover{
+  text-decoration: none;
+  color: #00478F; 
+}
+
+.team-contact-list a:visited {
+  text-decoration: none;
+  color: #551A8B; 
+}
+
+.tio-name {
+  font-weight: 600;
+  font-size: 1.2rem;
+}
+
+.ontario-icon path {
+  fill: #0066CC; 
+}

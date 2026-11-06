@@ -1,0 +1,49 @@
+<h3 class="search-title">
+    <strong>Filter By:</strong>
+</h3>
+<div class="ontario-accordions__container">
+
+    <!-- Expand-all and Collapse-all -->
+    <div class="ontario-accordion__controls">
+        <button class="ontario-accordion__button--expand-all" aria-expanded="false">
+            <span class="ontario-accordion--expand-open-all">{{ "calendarSearch.expandAll" |
+                localeString }}</span>
+            <span class="ontario-accordion--expand-close-all">{{ "calendarSearch.collapseAll" | 
+                localeString }}</span>
+        </button>
+    </div>
+    <!-- Expand-all and Collapse-all end-->
+
+    <template x-for="facet, idx in searchSet.facets">
+        <div class="ontario-accordion" :id="`accordion-${idx}`">
+            <h3 class="ontario-accordion-heading">
+                <span class="ontario-accordion__button" :id="`accordion-button-id-${idx}`" aria-controls="`accordion-content-${idx}`" aria-expanded="false" data-toggle="ontario-collapse">
+                    <span class="ontario-accordion__button-icon--close">
+                        <svg class="ontario-icon" alt="" aria-hidden="true" focusable="false" sol:category="primary" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
+                            <use href="#ontario-icon-chevron-up"></use>
+                        </svg>
+                    </span>
+                    <span class="ontario-accordion__button-icon--open">
+                        <svg class="ontario-icon" alt="" aria-hidden="true" focusable="false" sol:category="primary" viewBox="0 0 24 24" preserveAspectRatio="xMidYMid meet">
+                            <use href="#ontario-icon-chevron-down"></use>
+                        </svg>
+                    </span>
+                    <span x-text="facet.label"></span>
+                </span>
+            </h3>
+            <section class="ontario-accordion__content" id="`accordion-content-${idx}`" aria-labelledby="`accordion-button-id-${idx}`" aria-hidden="true" data-toggle="ontario-expander-content">
+                <fieldset class="ontario-fieldset">
+                    <legend class="ontario-fieldset__legend"></legend>
+                    <div class="ontario-checkboxes">
+                        <template x-for="item, itemIdx in facet.items">
+                            <div class="ontario-checkboxes__item">
+                                <input :id="`checkbox-option-f${idx}-i${itemIdx}`" class="ontario-checkboxes__input" type="checkbox" x-on:change="doSearch(); pushFilterToDataLayer($event)" x-bind:value="facet.name + ':' + item.label" x-model="selectedFacets"/>
+                                <label :for="`checkbox-option-f${idx}-i${itemIdx}`" class="ontario-checkboxes__label" x-html="`${item.label} - ${item.count}`" :checkbox-label="`${item.label}`"></label>
+                            </div>
+                        </template>
+                    </div>
+                </fieldset>
+            </section>
+        </div>
+    </template>
+</div>

@@ -1,0 +1,9 @@
+<p class="right small">
+    {% if lang === "fr" %}
+    Mis &agrave; jour: {{ frDateFormatUpdated(calendarEntry.updated_date) }}<br/>
+    Date de publication: {{ frDateFormatUpdated(calendarEntry.published_date) }}
+    {% else %}
+    Updated: {{ enDateFormatUpdated(calendarEntry.updated_date) }}<br/>
+    Published: {{ enDateFormatUpdated(calendarEntry.published_date) }}
+    {% endif %}
+</p>

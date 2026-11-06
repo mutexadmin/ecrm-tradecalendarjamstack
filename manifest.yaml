@@ -1,0 +1,37 @@
+---
+# Ontario.ca integrated application manifest
+integration_manifest:
+  # Required: Common name of the application
+  name: Trade Calendar
+
+  # Optional: Human readable description
+  description: International Trade Events Calendar
+
+  # Required: Machine readable application name.
+  # Validation: [A-Za-z0-9-]+
+  # Reference used by DevOps to associate resources
+  app_name: international-trade-events-calendar
+
+  # Required: Human readable ministry name.
+  # Used by DevOps to associate resources with a partner ministry.
+  ministry: GSIC
+
+  # Required: base url (should always be www.ontario.ca)
+  base_domain: www.ontario.ca
+
+  # Required: local path to static application
+  # (relative to root of this repo)
+  # Files under this path will be copied to the S3 bucket.
+  # I.e.: dist/jamstack-tutorial -> $BUCKET/jamstack-tutorial
+  dist_root: /dist
+
+  # Required: at least one entry.
+  # Paths will be redirected to the identical path within the build root.
+  # I.e.: www.ontario.ca/jamstack-tutorial -> $BUCKET/jamstack-tutorial
+  # Resource paths must match 1-1.  Developers cannot map arbitrary
+  # paths to arbitrary resources.
+  # DevOps does not do any routing based on language; it's up to the
+  # developer to create language specific resources, and publish them here.
+  published_paths:
+    - '/international-trade-events-calendar'
+    - '/calendrier-evenements-commerce-international'

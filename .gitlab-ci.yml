@@ -1,0 +1,271 @@
+default:
+  # Default container image when no other image is specified
+  # Any given docker image must be served from ECR.
+  image: 608395931184.dkr.ecr.us-east-1.amazonaws.com/ci/node:16-bullseye
+  cache:
+    # Cache NPM packages within GitLab.
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - .npm
+
+stages:
+  - pre-build
+  - build
+  - post-build
+  - infrastructure
+  - deploy
+
+variables:
+  # Override this via 'run pipeline' to force an infrastructure build.
+  # Otherwise, infrastructure will only be built or modified when
+  # 'manifest.yaml' changes.
+  FORCE_INFRA_BUILD: 'false'
+
+  # When ready for production, set this to 'true' via gitlab CI/CD variables
+  # in the web interface.  Until then any deploy (or infrastructure build)
+  # intended for production will be applied to staging.
+  PROD_INFRA_BUILD: 'false'
+
+  # Override (or change) these if using a different git workflow.
+  PRODUCTION_REF_SLUG: 'master' # 'prod' environment in gitlab.
+  STAGING_REF_SLUG: 'develop' # 'stage' environment in gitlab.
+
+# ------------------------------------------------------------------------------
+# Pre-build jobs
+# ------------------------------------------------------------------------------
+
+lint:
+  allow_failure: true
+  stage: pre-build
+  before_script:
+    - npm set cache .npm && npm ci --prefer-offline && npm cache verify
+  script:
+    - npm run lint
+
+# ------------------------------------------------------------------------------
+# Build artifacts.
+# ------------------------------------------------------------------------------
+
+.template_build: &template_build
+  stage: build
+  before_script:
+    - test ! -z ${GSIC_WAREHOUSE_TOKEN}
+    - npm set cache .npm && npm ci --prefer-offline && npm cache verify
+  script:
+    - npm run build
+  artifacts:
+    paths:
+      - dist
+
+build:staging:
+  <<: *template_build
+  variables:
+    ELEVENTY_ENV: 'stage' # DevOps' integration script requires 'prod' or 'stage'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG != $PRODUCTION_REF_SLUG
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD != "true"
+  environment:
+    name: stage # DevOps' integration script requires 'prod' or 'stage'    
+
+build:production:
+  <<: *template_build
+  variables:
+    ELEVENTY_ENV: 'prod' # DevOps' integration script requires 'prod' or 'stage'
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG
+  environment:
+    name: prod # DevOps' integration script requires 'prod' or 'stage'    
+
+# ------------------------------------------------------------------------------
+# Post-build jobs
+# ------------------------------------------------------------------------------
+
+test:
+  allow_failure: true
+  stage: post-build
+  before_script:
+    - npm set cache .npm && npm ci --prefer-offline && npm cache verify
+  script:
+    - npm run test
+  artifacts:
+    when: always
+
+validate:
+  allow_failure: true
+  stage: post-build
+  before_script:
+    - npm set cache .npm && npm ci --prefer-offline && npm cache verify
+  script:
+    - npm run build
+    - npm run htmlValidateDist
+
+# ------------------------------------------------------------------------------
+# Call the super awesome DevOps infrastructure creation hook.
+# ------------------------------------------------------------------------------
+
+# Check the current gitlab environment.  Note any deployment requirements that
+# have not been met.
+infrastructure:validate:
+  stage: pre-build
+  before_script:
+    - statuscode=0
+    - fail () { echo -e "[\e[31mFAIL\e[0m] $@"; statuscode=1; }
+    - warn () { echo -e "[\e[33mWARN\e[0m] $@"; }
+    - pass () { echo -e "[\e[32mPASS\e[0m] $@"; }
+    - curl -sL https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 -o /usr/bin/yq && chmod +x /usr/bin/yq
+    - npm set cache .npm && npm ci --prefer-offline && npm cache verify
+    - npm run build
+  script: |
+    if [[ -z "${PROJECT_TOKEN}" ]]; then
+      fail "PROJECT_TOKEN is not set or null."
+      warn "Generate a gitlab API key, and set it as a gitlab CI variable."
+    fi
+
+    if [[ -z "${PROD_INFRA_BUILD}" ]]; then
+      fail "PROD_INFRA_BUILD is not set or null."
+      warn "Set it as a gitlab CI variable.  Default to 'false' until this project is ready for production deployment."
+    elif [[ "${PROD_INFRA_BUILD}" != "true" && "${PROD_INFRA_BUILD}" != "false" ]]; then
+      fail "PROD_INFRA_BUILD must be either 'true' or 'false'."
+    fi
+
+    if [[ "${CI_COMMIT_REF_PROTECTED}" != "true" ]]; then
+      fail "${CI_COMMIT_REF_NAME} is not a protected branch."
+      warn "Deploys can only be performed on protected branches."
+    fi
+
+    if [[ "${CI_COMMIT_REF_SLUG}" != "${STAGING_REF_SLUG}" && "${CI_COMMIT_REF_SLUG}" != "${PRODUCTION_REF_SLUG}" ]]; then
+      fail "${CI_COMMIT_REF_NAME} is not associated with either staging (${STAGING_REF_SLUG}) or production (${PRODUCTION_REF_SLUG})."
+    fi
+
+    if [[ ! -f manifest.yaml ]]; then
+      fail "Could not find manifest.yaml."
+    else
+      DIST=$(yq .integration_manifest.dist_root manifest.yaml | sed 's/^\///')
+      PUBLISHED=$(yq '.integration_manifest.published_paths[]' manifest.yaml | sed "s/^/${DIST}/")
+      GENERATED=$(find ${DIST} -type d -maxdepth 1 -mindepth 1)
+      UNIQUE=$( (echo "${PUBLISHED}"; echo "${GENERATED}") | sort | uniq -u )
+
+      while read -r generatedpath; do
+        fail "${generatedpath} has not been published in manifest.yaml"
+      done < <( (echo "${UNIQUE}"; echo "${GENERATED}") | sort | uniq -d )
+
+      while read -r publishedpath; do
+        fail "${publishedpath} has been published in manifest.yaml yet has not been built"
+      done < <( (echo "${UNIQUE}"; echo "${PUBLISHED}") | sort | uniq -d )
+    fi
+
+    if [[ ${statuscode} -ne 0 ]]; then
+      exit ${statuscode}
+    else
+      pass "Infrastructure pre-flight validation passed.  Please contact someone with appropriate permissions to run the infrastructure creation job."
+    fi
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == $STAGING_REF_SLUG && $FORCE_INFRA_BUILD != "true"
+      changes:
+        - manifest.yaml
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $FORCE_INFRA_BUILD != "true"
+      changes:
+        - manifest.yaml
+    - if: $FORCE_INFRA_BUILD == "true"
+
+.template_infra: &template_infra
+  stage: infrastructure
+  allow_failure: true
+  variables: &template_infra_variables
+    EXT: .git
+    UPSTREAM_PROJECT_ID: $CI_PROJECT_ID
+    UPSTREAM_PROJECT_URL: $CI_PROJECT_URL$EXT
+    UPSTREAM_COMMIT_BRANCH: $CI_COMMIT_BRANCH
+    UPSTREAM_PROJECT_TOKEN: $PROJECT_TOKEN
+  trigger:
+    project: jamstack/build-infrastructure
+    branch: main
+    strategy: depend
+  needs:
+    - infrastructure:validate
+
+infrastructure:staging:
+  <<: *template_infra
+  variables:
+    <<: *template_infra_variables
+    UPSTREAM_PROD_INFRA_BUILD: 'false'
+    # Always treat PROD_INFRA_BUILD as 'false' in staging.
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == $STAGING_REF_SLUG && $FORCE_INFRA_BUILD != "true"
+      # Only update infrastructure if relevant files change.
+      changes:
+        - manifest.yaml
+    - if: $CI_COMMIT_REF_SLUG == $STAGING_REF_SLUG && $FORCE_INFRA_BUILD == "true"
+      # Allow a github user to force this operation even if no
+      # relevant changes have landed.
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD != "true" && $FORCE_INFRA_BUILD != "true"
+      # If we have not enabled the production environment, build staging instead.
+      changes:
+        - manifest.yaml
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD != "true" && $FORCE_INFRA_BUILD == "true"
+
+infrastructure:production:
+  <<: *template_infra
+  variables:
+    <<: *template_infra_variables
+    UPSTREAM_PROD_INFRA_BUILD: $PROD_INFRA_BUILD
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD == "true" && $FORCE_INFRA_BUILD != "true"
+      changes:
+        - manifest.yaml
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD == "true" && $FORCE_INFRA_BUILD == "true"
+
+# ------------------------------------------------------------------------------
+# Deploy to S3
+# ------------------------------------------------------------------------------
+
+.template_deploy: &template_deploy
+  stage: deploy
+  image: 608395931184.dkr.ecr.us-east-1.amazonaws.com/ont/docker-aws
+  before_script:
+    - test ! -z ${AWS_ACCESS_KEY_ID}
+    - test ! -z ${S3_DEPLOY_BUCKET}
+    - pip install awscli
+  script:
+    - aws s3 sync --delete dist/ s3://$S3_DEPLOY_BUCKET/
+
+deploy:staging:
+  <<: *template_deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == $STAGING_REF_SLUG
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD != "true"
+  needs:
+    - build:staging
+    - test
+    - validate
+  dependencies:
+    - build:staging
+  environment:
+    name: stage # DevOps' integration script requires 'prod' or 'stage'
+
+deploy:production:
+  <<: *template_deploy
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      when: never
+    - if: $CI_COMMIT_REF_SLUG == $PRODUCTION_REF_SLUG && $PROD_INFRA_BUILD == "true"
+  needs:
+    - build:production
+    - test
+    - validate
+  dependencies:
+    - build:production
+  environment:
+    name: prod # DevOps' integration script requires 'prod' or 'stage'

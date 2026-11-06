@@ -1,0 +1,45 @@
+{# Include any custom tags for the <head></head> portion of the layout here. #}
+<script defer src="https://unpkg.com/alpinejs@3.7.0/dist/cdn.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fuse.js/dist/fuse.js"></script>
+<script src="{{ globals.assetsRoot }}/js/app/ontario-expand-collapse-global.js"></script>
+
+{# Initializing our window object with dataLayer #}
+<script>
+    window.dataLayer = window.dataLayer || [];
+</script>
+
+{# This code snippet should fire every time a search is completed: #}
+<script>
+      function pushSearchToDataLayer() {
+            let searchTerm = document.getElementById('tc-search-text').value;
+            window.dataLayer.push({
+                  'event': 'product_search',
+                  'product_name': 'Calendar of International Trade Programs and Events',
+                  'search_term': searchTerm 
+            });
+      }
+</script>
+
+{# This code snippet should fire every time a search filter checkbox is selected: #}
+<script>
+    function pushFilterToDataLayer(event) {
+        if (event.target.checked) { // Only running this function for selected boxes
+            let checkboxState = 'selected';
+            // Getting the label of the checkbox
+            let checkboxLabel = document.querySelector(`label[for="${event.target.id}"]`).getAttribute('checkbox-label');
+
+            // Getting the container of the checkbox
+            let container = event.target.closest('.ontario-accordion');
+            // Getting the text content of the span within the container
+            let filterGroup = container.querySelector('span[x-text="facet.label"]').innerText;
+
+            window.dataLayer.push({
+                'event': 'product_search_filter',
+                'product_name': 'Calendar of International Trade Programs and Events',
+                'checkbox_state': checkboxState,
+                'checkbox_name': checkboxLabel,
+                'filter_group': filterGroup
+            });
+        }
+    }
+</script>

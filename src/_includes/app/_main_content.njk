@@ -1,0 +1,12 @@
+{% include "app/_calendar_header.njk" %}
+
+<div class="ontario-row maincontent__container">    
+        {{ content | safe }}    
+    <div class="ontario-column ontario-small-12">
+        {% if not calendarEntry %}
+            {% include "core/components/_page_dates.njk" %}
+        {% elif calendarEntry and calendarEntry.updated_date and calendarEntry.published_date %}                
+            {% include "app/components/_page_dates.njk" %}
+        {% endif %}
+    </div>
+</div>

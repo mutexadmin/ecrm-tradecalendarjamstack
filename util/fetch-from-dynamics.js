@@ -61,15 +61,20 @@ const fieldMap = {
 
 // Reads a field whether Dynamics returned it as a plain value, a lookup
 // (_name_value + formatted value) or an option set (number + formatted value).
+// Dates keep their raw ISO value: the display form is day/month/year, which
+// the build would misread as month/day/year.
 function readField(record, name) {
   const lookupKey = `_${name}_value`;
   if (lookupKey in record) {
     return record[`${lookupKey}${FORMATTED}`] ?? record[lookupKey] ?? null;
   }
-  if (`${name}${FORMATTED}` in record) {
-    return record[`${name}${FORMATTED}`];
+  const raw = record[name];
+  const formatted = record[`${name}${FORMATTED}`];
+  const isDate = typeof raw === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(raw);
+  if (formatted !== undefined && !isDate) {
+    return formatted;
   }
-  return record[name] ?? null;
+  return raw ?? null;
 }
 
 // The build (tradeEvents.js) crashes if any of these is missing, so events

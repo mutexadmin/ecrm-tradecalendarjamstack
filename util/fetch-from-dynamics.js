@@ -71,12 +71,35 @@ function readField(record, name) {
   return record[name] ?? null;
 }
 
+// The build (tradeEvents.js) crashes if any of these is missing, so events
+// without them are left out, as the warehouse rows always have them.
+const requiredColumns = [
+  'Events[Event]',
+  'Event_Name',
+  'Description',
+  'Sector_for_Public_Events',
+  'Market_for_Public_Events',
+  'Event_Start_Date',
+  'Event_End_Date',
+];
+
 function toWarehouseRow(record) {
   const row = {};
   for (const [column, field] of Object.entries(fieldMap)) {
     row[column] = readField(record, field);
   }
+  // Empty text columns become '' so the build's string handling doesn't
+  // trip over null (it already warns about empty French fields).
+  for (const column of Object.keys(fieldMap)) {
+    if (row[column] == null && !requiredColumns.includes(column)) {
+      row[column] = '';
+    }
+  }
   return row;
+}
+
+function missingColumns(row) {
+  return requiredColumns.filter((c) => row[c] == null || row[c] === '');
 }
 
 async function getToken({ url, tenantId, clientId, clientSecret }) {
@@ -150,16 +173,31 @@ async function main() {
   const records = await fetchEvents(config.url, token);
   console.log(`Dynamics returned ${records.length} active event(s).`);
 
-  const rows = records.map(toWarehouseRow);
+  const allRows = records.map(toWarehouseRow);
 
   // Warn about fields that came back empty for every event: usually a wrong
   // field name in fieldMap above.
   for (const column of Object.keys(fieldMap)) {
-    if (rows.length && rows.every((r) => r[column] == null)) {
+    if (allRows.length && allRows.every((r) => r[column] == null || r[column] === '')) {
       console.warn(`Warning: '${column}' (${fieldMap[column]}) is empty for every event`);
     }
   }
 
+  const rows = [];
+  console.log('\nSkipped (incomplete in Dynamics):');
+  let skipped = 0;
+  for (const r of allRows) {
+    const missing = missingColumns(r);
+    if (missing.length) {
+      skipped++;
+      console.log(`  ${r.Event_Name || r['Events[Event]']} - missing ${missing.join(', ')}`);
+    } else {
+      rows.push(r);
+    }
+  }
+  if (!skipped) console.log('  (none)');
+
+  console.log('\nSaved to cache:');
   for (const r of rows) {
     console.log(
       `  ${r.Event_Name} | start ${r.Event_Start_Date} | approver ${r.Approver} | status ${r.Publish_Status}`
@@ -167,7 +205,7 @@ async function main() {
   }
 
   await new AssetCache(cacheKey).save(rows, 'json');
-  console.log(`Saved ${rows.length} event(s) to the local cache for '${instance}'.`);
+  console.log(`\nSaved ${rows.length} event(s) to the local cache for '${instance}' (${skipped} skipped).`);
 }
 
 main().catch((e) => {

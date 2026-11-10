@@ -22,6 +22,7 @@ const { AssetCache } = require(path.join(
   process.cwd(),
   'node_modules/@11ty/eleventy-fetch'
 ));
+const slugify = require(path.join(process.cwd(), 'node_modules/slugify'));
 
 // Must match adbInstances in src/_data/app/tradeEvents.js
 const cacheKeys = {
@@ -102,6 +103,17 @@ function missingColumns(row) {
   return requiredColumns.filter((c) => row[c] == null || row[c] === '');
 }
 
+// The build makes each event's page address from its name plus the first 3
+// characters of its id (see tradeEvents.js), and stops if two events get
+// the same address. Returns the addresses the build would use for a row.
+function pageSlugs(row) {
+  const suffix = '-' + row['Events[Event]'].substring(0, 3);
+  return [
+    slugify(row.Event_Name + suffix, { lower: true, strict: true, locale: 'en' }),
+    slugify(row.Event_Name_French + suffix, { lower: true, strict: true, locale: 'fr' }),
+  ];
+}
+
 async function getToken({ url, tenantId, clientId, clientSecret }) {
   const body = new URLSearchParams({
     grant_type: 'client_credentials',
@@ -132,7 +144,7 @@ async function fetchEvents(url, token) {
     Accept: 'application/json',
     'OData-MaxVersion': '4.0',
     'OData-Version': '4.0',
-    Prefer: `odata.include-annotations="${FORMATTED}"`,
+    Prefer: 'odata.include-annotations="*"',
   };
   const records = [];
   while (next) {
@@ -184,16 +196,27 @@ async function main() {
   }
 
   const rows = [];
-  console.log('\nSkipped (incomplete in Dynamics):');
+  const seenSlugs = new Map();
+  console.log('\nSkipped:');
   let skipped = 0;
   for (const r of allRows) {
+    const label = r.Event_Name || r['Events[Event]'];
     const missing = missingColumns(r);
     if (missing.length) {
       skipped++;
-      console.log(`  ${r.Event_Name || r['Events[Event]']} - missing ${missing.join(', ')}`);
-    } else {
-      rows.push(r);
+      console.log(`  ${label} - missing ${missing.join(', ')}`);
+      continue;
     }
+    const clash = pageSlugs(r).find((s) => seenSlugs.has(s));
+    if (clash) {
+      skipped++;
+      console.log(
+        `  ${label} - would get the same page address '${clash}' as '${seenSlugs.get(clash)}'`
+      );
+      continue;
+    }
+    pageSlugs(r).forEach((s) => seenSlugs.set(s, label));
+    rows.push(r);
   }
   if (!skipped) console.log('  (none)');
 
